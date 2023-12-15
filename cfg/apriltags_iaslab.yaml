@@ -1,0 +1,12 @@
+standalone_tags:
+  [
+    {id: 1, size: 0.026, frame_id: blue_hexagon},
+    {id: 2, size: 0.026, frame_id: green_triangle},
+    {id: 3, size: 0.026, frame_id: red_cube},
+
+    {id: 4, size: 0.052, frame_id: gold_obs_0},
+    {id: 5, size: 0.052, frame_id: gold_obs_1},
+    {id: 6, size: 0.052, frame_id: gold_obs_2},
+    {id: 7, size: 0.052, frame_id: gold_obs_3}
+    
+  ]

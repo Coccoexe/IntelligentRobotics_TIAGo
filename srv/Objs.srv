@@ -1,0 +1,4 @@
+bool ready #if true human_node send the object's ID, otherwise human_node print an error and kill ros
+bool all_objs #set true only if you do extra points part
+---
+int32[] ids

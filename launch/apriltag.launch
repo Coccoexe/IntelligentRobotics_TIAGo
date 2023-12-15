@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="camera_base_name"           default="xtion"                                         />
+  <arg name="apriltag_config_yaml"       default="$(find tiago_iaslab_simulation)/cfg/apriltags_iaslab.yaml"      />
+  
+  <!-- start Apriltags detector -->
+  <include file="$(find tiago_iaslab_simulation)/launch/apriltag_ros.launch">
+    <arg name="camera_name"        value="$(arg camera_base_name)"           />
+    <arg name="apriltags_cfg_yaml" value="$(arg apriltag_config_yaml)"       />
+    <arg name="image_topic"        value="/rgb/image_raw"                    />
+
+  </include>
+</launch>
