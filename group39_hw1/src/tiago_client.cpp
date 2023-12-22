@@ -28,7 +28,7 @@ int main (int argc, char **argv)
     goal.theta = -70;
 
     if(argc < 4){
-        ROS_INFO("Used default value for x,y,theta (11,0,-90)");
+        ROS_INFO("Used default value for x,y,theta (11,0,-70)");
     }
     else{
         goal.x = atof(argv[1]);     
