@@ -21,9 +21,20 @@ int main (int argc, char **argv)
 
     // Send goal
     group39_hw1::MoveGoal goal;
-    goal.x = atof(argv[1]);
-    goal.y = atof(argv[2]);
-    goal.theta = atof(argv[3]);
+    //parse arguments if any
+
+    goal.x = 11;
+    goal.y = 0;
+    goal.theta = -70;
+
+    if(argc < 4){
+        ROS_INFO("Used default value for x,y,theta (11,0,-90)");
+    }
+    else{
+        goal.x = atof(argv[1]);     
+        goal.y = atof(argv[2]);     
+        goal.theta = atof(argv[3]);
+    }
     ac.sendGoal(goal);
     
     // Wait for the action to return
