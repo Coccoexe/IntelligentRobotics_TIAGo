@@ -5,6 +5,12 @@
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
 #include <group39_hw1/MoveAction.h>
+#include <sensor_msgs/LaserScan.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
+
+#define PI 3.14159265
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -12,6 +18,7 @@ class Server
 {
 protected:
     ros::NodeHandle nh_;
+    ros::Subscriber laser_sub_; // laser scanner
     actionlib::SimpleActionServer<group39_hw1::MoveAction> as_;
     std::string action_name_;
     group39_hw1::MoveFeedback feedback_;
@@ -24,6 +31,15 @@ public:
         as_.start();
     }
     ~Server(void){}
+    void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+    {
+        // Here you can access the LaserScan data
+        for(int i = 0; i < msg->ranges.size(); i++){
+            float range = msg->ranges[i];
+            ROS_INFO("Range: %f", range);
+            // Do something with range
+        }
+    }
     void executeCB(const group39_hw1::MoveGoalConstPtr &goal)
     {
         // Flag to check if the goal was reached
@@ -49,8 +65,13 @@ public:
     
         goalPosition.target_pose.pose.position.x = goal->x;    // 1.0;
         goalPosition.target_pose.pose.position.y = goal->y;    // 1.0;
-        goalPosition.target_pose.pose.orientation.z = goal->z; // 1.0;
-    
+        double degree = goal->theta;
+        //to radians
+        double rad = degree * PI / 180;
+        tf2::Quaternion q;
+        q.setRPY(0, 0, rad);
+        goalPosition.target_pose.pose.orientation = tf2::toMsg(q.normalize()); 
+
         ROS_INFO("Sending goal");
         ac.sendGoal(goalPosition);
     
@@ -65,6 +86,9 @@ public:
             result_.sequence = feedback_.sequence;
             ROS_INFO("%s: Succeeded", action_name_.c_str());
             as_.setSucceeded(result_);
+            sensor_msgs::LaserScan::ConstPtr msg = ros::topic::waitForMessage<sensor_msgs::LaserScan>("/scan", ros::Duration(10));
+            if(msg != nullptr)
+                laserCallback(msg);
         }
     }
 };

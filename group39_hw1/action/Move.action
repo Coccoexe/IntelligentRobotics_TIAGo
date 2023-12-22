@@ -1,7 +1,7 @@
 # Define the action goal
 float32 x
 float32 y
-float32 z
+float32 theta
 ---
 # Define the action result
 int32[] sequence

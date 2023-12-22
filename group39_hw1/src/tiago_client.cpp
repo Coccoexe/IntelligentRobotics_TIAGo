@@ -23,7 +23,7 @@ int main (int argc, char **argv)
     group39_hw1::MoveGoal goal;
     goal.x = atof(argv[1]);
     goal.y = atof(argv[2]);
-    goal.z = atof(argv[3]);
+    goal.theta = atof(argv[3]);
     ac.sendGoal(goal);
     
     // Wait for the action to return
