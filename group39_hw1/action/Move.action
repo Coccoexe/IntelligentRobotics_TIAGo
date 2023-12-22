@@ -1,0 +1,10 @@
+# Define the action goal
+float32 x
+float32 y
+float32 z
+---
+# Define the action result
+int32[] sequence
+---
+# Define the action feedback
+int32[] sequence

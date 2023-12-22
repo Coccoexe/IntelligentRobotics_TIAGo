@@ -21,8 +21,9 @@ int main(int argc, char** argv){
     goal.target_pose.header.frame_id = "map"; // "base_link" le coordinate si riferiscono a dove parte, mentre con map si riferiscono alla mappa generale
     goal.target_pose.header.stamp = ros::Time::now();
   
-    goal.target_pose.pose.position.x = 1.0;
-    goal.target_pose.pose.orientation.w = 1.0;
+    goal.target_pose.pose.position.x = atof(argv[1]);    //1.0;
+    goal.target_pose.pose.position.y = atof(argv[2]);    //1.0;
+    goal.target_pose.pose.orientation.z = atof(argv[3]); //1.0;
   
     ROS_INFO("Sending goal");
     ac.sendGoal(goal);

@@ -61,17 +61,18 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
+ add_action_files(
+   FILES
+   Move.action
 #   Action2.action
-# )
+ )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   move_base_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   actionlib_msgs
+   std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES group39_hw1
-#  CATKIN_DEPENDS actionlib move_base_msgs roscpp
+  CATKIN_DEPENDS actionlib move_base_msgs roscpp
 #  DEPENDS system_lib
 )
 
@@ -207,4 +208,8 @@ include_directories(
 
 
 add_executable(movement_node src/movement_node.cpp)
+add_executable(server src/tiago_server.cpp)
+add_executable(client src/tiago_client.cpp)
 target_link_libraries(movement_node ${catkin_LIBRARIES})
+target_link_libraries(server ${catkin_LIBRARIES})
+target_link_libraries(client ${catkin_LIBRARIES})
