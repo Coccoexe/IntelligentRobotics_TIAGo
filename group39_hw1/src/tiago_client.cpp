@@ -1,20 +1,33 @@
+// Authors: Group 39 (Alessio Cocco, Andrea Valentinuzzi, Giovanni Brejc)
+
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 #include <group39_hw1/MoveAction.h>
+
 int main (int argc, char **argv)
 {
+    // Constants
+    const float GR39_TIMEOUT = 60.0;
+
+    // Initialize ROS
     ros::init(argc, argv, "client");
     actionlib::SimpleActionClient<group39_hw1::MoveAction> ac("movement", true);
+    
+    // Wait for the action server to start
     ROS_INFO("Waiting for action server to start.");
-    ac.waitForServer(); //will wait for infinite time
+    ac.waitForServer();
     ROS_INFO("Action server started, sending goal.");
+
+    // Send goal
     group39_hw1::MoveGoal goal;
     goal.x = atof(argv[1]);
     goal.y = atof(argv[2]);
     goal.z = atof(argv[3]);
     ac.sendGoal(goal);
-    bool finished_before_timeout = ac.waitForResult(ros::Duration(30.0));
+    
+    // Wait for the action to return
+    bool finished_before_timeout = ac.waitForResult(ros::Duration(GR39_TIMEOUT));
     if (finished_before_timeout)
     {
         actionlib::SimpleClientGoalState state = ac.getState();
@@ -22,5 +35,11 @@ int main (int argc, char **argv)
     }
     else
         ROS_INFO("Action did not finish before the time out.");
+
+    // TODO: Print movable obstacles coordinates
+    ROS_INFO("Movable obstacles coordinates:");
+    // ...
+
+    // Exit
     return 0;
 }
