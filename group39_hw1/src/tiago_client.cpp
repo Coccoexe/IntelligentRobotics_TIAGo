@@ -9,6 +9,7 @@ void doneCb(const actionlib::SimpleClientGoalState& state,
             const group39_hw1::MoveResultConstPtr& result)
 {
     ROS_INFO("Finished in state [%s]", state.toString().c_str());
+    ROS_INFO("DETECTED OBSTACLES:");
     for (int i = 0; i < result->coordinates.size(); i++)
     {
         ROS_INFO("Movable obstacle %d: x = %f, y = %f", i, result->coordinates[i].x, result->coordinates[i].y);
@@ -17,12 +18,12 @@ void doneCb(const actionlib::SimpleClientGoalState& state,
 
 void activeCb()
 {
-    ROS_INFO("Start Moving");
+    ROS_INFO("Robot is Moving");
 }
 
 void feedbackCb(const group39_hw1::MoveFeedbackConstPtr& feedback)
 {
-    ROS_INFO("%s", feedback->f.c_str());
+    ROS_INFO("FEEDBACK: %s", feedback->f.c_str());
 }
 
 int main (int argc, char **argv)

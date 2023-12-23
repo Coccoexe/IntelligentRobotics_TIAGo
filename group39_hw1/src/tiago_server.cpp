@@ -80,7 +80,7 @@ private:
             ROS_INFO("No pose data, skipping");
             return;
         }
-        ROS_INFO("TIAGo pose: (%f, %f, %f)\n\n\n", TIAGO_X, TIAGO_Y, TIAGO_YAW);
+        ROS_INFO("TIAGo pose: (%f, %f, %f)", TIAGO_X, TIAGO_Y, TIAGO_YAW);
 
         // Convert relative distances to absolute coordinates
         Gr39_Coordinates crd[NUM_DISTANCES];
@@ -169,7 +169,7 @@ public:
         for(int i = 0; i < msg->ranges.size(); i++){
             float range = msg->ranges[i];
             dst[i] = range;
-            ROS_INFO("%f", range);
+            if (DEBUG) ROS_INFO("%f", range);
         }
 
         // Find obstacles
