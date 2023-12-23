@@ -12,6 +12,7 @@
 
 
 #define PI 3.14159265
+#define DEBUG false
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -36,7 +37,7 @@ private:
     const float TIAGO_ANGLE_RANGE      = 1.9198600053787231;
     const float TIAGO_ANGLE_INCREMENT  = 0.005774015095084906;
     const float THRESHOLD_DISTANCE     = 0.5;
-    const float THRESHOLD_ANGLE_AVG    = 0.05;
+    const float THRESHOLD_ANGLE_AVG    = 0.04;
 
     // Store the distances from the laser scanner
     float dst[NUM_DISTANCES];
@@ -51,8 +52,8 @@ private:
     {   // Convert laser distance from TIAGo, knowing angle, to absolute coordinates
         for (int i = 0; i < NUM_DISTANCES; i++)
         {
-            c[i].x = TIAGO_X + d[i] * cos(TIAGO_YAW + TIAGO_ANGLE_RANGE + i * TIAGO_ANGLE_INCREMENT);
-            c[i].y = TIAGO_Y + d[i] * sin(TIAGO_YAW + TIAGO_ANGLE_RANGE + i * TIAGO_ANGLE_INCREMENT);
+            c[i].x = TIAGO_X + d[i] * cos(TIAGO_YAW - TIAGO_ANGLE_RANGE + i * TIAGO_ANGLE_INCREMENT);
+            c[i].y = TIAGO_Y + d[i] * sin(TIAGO_YAW - TIAGO_ANGLE_RANGE + i * TIAGO_ANGLE_INCREMENT);
         }
     }
     
@@ -67,23 +68,39 @@ private:
 
     void findObstacles()
     {
+        // Check if we have laser data and pose data
+        if (dst[0] == 0)
+        {   // No laser data, skip
+            ROS_INFO("No laser data, skipping");
+            return;
+        }
+        if (TIAGO_X == 0 || TIAGO_Y == 0 || TIAGO_YAW == 0)
+        {   // No pose data, skip
+            ROS_INFO("No pose data, skipping");
+            return;
+        }
+        ROS_INFO("TIAGo pose: (%f, %f, %f)\n\n\n", TIAGO_X, TIAGO_Y, TIAGO_YAW);
+
         // Convert relative distances to absolute coordinates
         Gr39_Coordinates crd[NUM_DISTANCES];
         distanceToCoordinates(&dst[0], &crd[0]);
+        if (DEBUG) ROS_INFO("DEBUG: coordinates point(100) = (%f, %f)", crd[100].x, crd[100].y);
 
         // Compute angles between each point and the next one
         float angle[NUM_DISTANCES];
         computeAngles(&crd[0], &angle[0]);
+        if (DEBUG) ROS_INFO("DEBUG: angle point(100) = %f", angle[100]);
 
         // Find POIs (Points Of Interest), defined as: distance change > THRESHOLD_DISTANCE, removing LEGS_WIDTH left and right readings, since they are obstructed by the robot's legs
         int prev_index = -1;
         for (int i = 0 + LEGS_WIDTH - 1; i < NUM_DISTANCES - LEGS_WIDTH + 1; i++)
-        {   
+        {
             // 0. This is the first check, to see if the distance change is significant
             if (abs(dst[i] - dst[i + 1]) <= THRESHOLD_DISTANCE)
             {   // Distance change is not significant, skip WITHOUT saving the index
                 continue;
             }
+            if (DEBUG) ROS_INFO("DEBUG: d[point(%d), point(%d)] = %f", i, i + 1, abs(dst[i] - dst[i + 1]));
 
             // 1. Now point(i) & point(i+1) create a separation between two different depths (to define if wall or obstacle)
             if (prev_index == -1)
@@ -99,6 +116,7 @@ private:
                 prev_index = i + 1;
             	continue;
             }
+            if (DEBUG) ROS_INFO("DEBUG: gap[point(%d), point(%d)] = %f", prev_index, i, gap);
 
             // 3. Analyze the gap between point(prev_index) & point(i) to determine if it is an obstacle, then save the index (+1)
             float delta_angle_avg = 0;
@@ -116,6 +134,7 @@ private:
             // 4. Here we're left with a range [prev_index, i] that is most likely an obstacle, so we can compute its center
             float m1 = - 1.0 / angle[prev_index - 1];
             float m2 = -1.0 / angle[i];
+            if (DEBUG) ROS_INFO("DEBUG: m1 = %f, m2 = %f", m1, m2);
             if (m1 == m2)
             {   // Hope this never happens :)
                 prev_index = i + 1;
@@ -145,6 +164,7 @@ public:
         for(int i = 0; i < msg->ranges.size(); i++){
             float range = msg->ranges[i];
             dst[i] = range;
+            ROS_INFO("%f", range);
         }
 
         // Find obstacles
@@ -161,9 +181,9 @@ public:
         tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
         
         // Save the pose
-        TIAGO_X = x;
-        TIAGO_Y = y;
-        TIAGO_YAW = yaw;
+        TIAGO_X = float(x);
+        TIAGO_Y = float(y);
+        TIAGO_YAW = float(yaw);
     }
     void executeCB(const group39_hw1::MoveGoalConstPtr &goal)
     {
