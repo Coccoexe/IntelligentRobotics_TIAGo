@@ -6,6 +6,10 @@ altro terminale:
 source ~/catkin_ws/devel/setup.bash
 roslaunch tiago_iaslab_simulation navigation.launch
 
-altro terminale: runnare nostro codice
+altro terminale: runnare nostro server
 source ~/catkin_ws/devel/setup.bash
-rosrun group39_hw1 movement_node
+rosrun group39_hw1 server
+
+altro terminale: runnare nostro client
+source ~/catkin_ws/devel/setup.bash
+rosrun group39_hw1 client
