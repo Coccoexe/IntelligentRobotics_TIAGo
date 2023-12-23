@@ -3,7 +3,7 @@
 - Alessio Cocco 		    alessio.cocco@studenti.unipd.it
 - Giovanni Brejc 		    giovanni.brejc@studenti.unipd.it
 
-This repository contains the project folder and files like the homework assignment and readme.
+This repository contains the project folder and files like the readme and gitignore.
 
 ## Instructions
 #### Terminal 1:
