@@ -1,29 +1,28 @@
-GROUP 39
-Andrea Valentinuzzi 	andrea.valentinuzzi@studenti.unipd.it
-Alessio Cocco 		alessio.cocco@studenti.unipd.it
-Giovanni Brejc 		giovanni.brejc@studenti.unipd.it
+# GROUP 39
+- Andrea Valentinuzzi 	andrea.valentinuzzi@studenti.unipd.it
+- Alessio Cocco 		    alessio.cocco@studenti.unipd.it
+- Giovanni Brejc 		    giovanni.brejc@studenti.unipd.it
 
-the repository contains the project folder and some files like the homework assignment and readme.
+This repository contains the project folder and files like the homework assignment and readme.
 
-Run instructions:
-
-Terminal 1:
+## Instructions
+#### Terminal 1:
 	catkin build
 	source ~/catkin_ws/devel/setup.bash
 	roslaunch tiago_iaslab_simulation start_simulation.launch world_name:=robotics_library
 
-Terminal 2:
+#### Terminal 2:
 	source ~/catkin_ws/devel/setup.bash
 	roslaunch tiago_iaslab_simulation navigation.launch
 
-Terminal 3: (server)
+#### Terminal 3: (server)
 	source ~/catkin_ws/devel/setup.bash
 	rosrun group39_hw1 server
 
-Terminal 4: (client)
+#### Terminal 4: (client)
 	source ~/catkin_ws/devel/setup.bash
 	rosrun group39_hw1 client
 	
-Note that the client can be runned wihtout any command or with Pose_B coordinates:
-	es. rosrun group39_hw1 client
-	es. rosrun group39_hw1 client 10 0 90
+#### Note that the client can be runned wihtout any command or with Pose_B coordinates (examples below):
+	rosrun group39_hw1 client
+	rosrun group39_hw1 client 10 0 90
