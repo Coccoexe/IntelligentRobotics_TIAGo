@@ -5,6 +5,26 @@
 #include <actionlib/client/terminal_state.h>
 #include <group39_hw1/MoveAction.h>
 
+void doneCb(const actionlib::SimpleClientGoalState& state,
+            const group39_hw1::MoveResultConstPtr& result)
+{
+    ROS_INFO("Finished in state [%s]", state.toString().c_str());
+    for (int i = 0; i < result->coordinates.size(); i++)
+    {
+        ROS_INFO("Movable obstacle %d: x = %f, y = %f", i, result->coordinates[i].x, result->coordinates[i].y);
+    }
+}
+
+void activeCb()
+{
+    ROS_INFO("Start Moving");
+}
+
+void feedbackCb(const group39_hw1::MoveFeedbackConstPtr& feedback)
+{
+    ROS_INFO("%s", feedback->f.c_str());
+}
+
 int main (int argc, char **argv)
 {
     // Constants
@@ -28,14 +48,14 @@ int main (int argc, char **argv)
     goal.theta = -70;
 
     if(argc < 4){
-        ROS_INFO("Used default value for x,y,theta (11,0,-70)");
+        ROS_INFO("Used default value for x,y,theta (%f,%f,%f)",goal.x,goal.y,goal.theta);
     }
     else{
         goal.x = atof(argv[1]);     
         goal.y = atof(argv[2]);     
         goal.theta = atof(argv[3]);
     }
-    ac.sendGoal(goal);
+    ac.sendGoal(goal, &doneCb, &activeCb, &feedbackCb);
     
     // Wait for the action to return
     bool finished_before_timeout = ac.waitForResult(ros::Duration(GR39_TIMEOUT));
@@ -46,10 +66,6 @@ int main (int argc, char **argv)
     }
     else
         ROS_INFO("Action did not finish before the time out.");
-
-    // TODO: Print movable obstacles coordinates
-    ROS_INFO("Movable obstacles coordinates:");
-    // ...
 
     // Exit
     return 0;

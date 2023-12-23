@@ -6,6 +6,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <group39_hw1/MoveAction.h>
 #include <sensor_msgs/LaserScan.h>
+#include <group39_hw1/Coordinates.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -147,6 +148,10 @@ private:
 
             // 5. Obstacle confirmed at Gr39_Coordinates intersection
             ROS_INFO("Obstacle found at (%f, %f)", intersection.x, intersection.y);
+            group39_hw1::Coordinates c;
+            c.x = intersection.x;
+            c.y = intersection.y;
+            result_.coordinates.push_back(c);
         }            
     }
 
@@ -190,8 +195,7 @@ public:
         // Flag to check if the goal was reached
         bool success = true;
 
-        // Clear the feedback vector
-        feedback_.sequence.clear();
+        result_.coordinates.clear();
 
         // Tell the action client that we want to spin a thread by default
         MoveBaseClient ac("move_base", true);
@@ -228,18 +232,35 @@ public:
             success = false;
 
         if(success){
-            result_.sequence = feedback_.sequence;
-            ROS_INFO("%s: Succeeded", action_name_.c_str());
-            as_.setSucceeded(result_);
-
+            feedback_.f = "Goal reached, detecting exact position";
+            as_.publishFeedback(feedback_);
             geometry_msgs::PoseWithCovarianceStamped::ConstPtr msg2 = ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose", ros::Duration(10));
             if(msg2 != nullptr)
                 poseCallback(msg2);
 
+            feedback_.f = "Position detected, collecting laser data";
+            as_.publishFeedback(feedback_);
             sensor_msgs::LaserScan::ConstPtr msg = ros::topic::waitForMessage<sensor_msgs::LaserScan>("/scan", ros::Duration(10));
             ros::Subscriber sub = nh_.subscribe("/amcl_pose", 1000, &Server::poseCallback, this);
             if(msg != nullptr)
+            {
+                feedback_.f = "Laser data collected, finding obstacles";
+                as_.publishFeedback(feedback_);
                 laserCallback(msg);
+            }
+            else
+            {
+                feedback_.f = "Laser data not collected";
+                as_.publishFeedback(feedback_);
+            }
+
+            //return result
+            as_.setSucceeded(result_);
+        }
+        else{
+            feedback_.f = "Goal not reached";
+            as_.publishFeedback(feedback_);
+            as_.setAborted(result_);
         }
     }
 };

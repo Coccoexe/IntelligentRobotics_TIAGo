@@ -4,7 +4,7 @@ float32 y
 float32 theta
 ---
 # Define the action result
-int32[] sequence
+Coordinates[] coordinates
 ---
 # Define the action feedback
-int32[] sequence
+string f
