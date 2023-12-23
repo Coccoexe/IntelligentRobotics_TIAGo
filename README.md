@@ -1,15 +1,29 @@
-catkin build
-source ~/catkin_ws/devel/setup.bash
-roslaunch tiago_iaslab_simulation start_simulation.launch world_name:=robotics_library
+GROUP 39
+Andrea Valentinuzzi 	andrea.valentinuzzi@studenti.unipd.it
+Alessio Cocco 		alessio.cocco@studenti.unipd.it
+Giovanni Brejc 		giovanni.brejc@studenti.unipd.it
 
-altro terminale:
-source ~/catkin_ws/devel/setup.bash
-roslaunch tiago_iaslab_simulation navigation.launch
+the repository contains the project folder and some files like the homework assignment and readme.
 
-altro terminale: runnare nostro server
-source ~/catkin_ws/devel/setup.bash
-rosrun group39_hw1 server
+Run instructions:
 
-altro terminale: runnare nostro client
-source ~/catkin_ws/devel/setup.bash
-rosrun group39_hw1 client
+Terminal 1:
+	catkin build
+	source ~/catkin_ws/devel/setup.bash
+	roslaunch tiago_iaslab_simulation start_simulation.launch world_name:=robotics_library
+
+Terminal 2:
+	source ~/catkin_ws/devel/setup.bash
+	roslaunch tiago_iaslab_simulation navigation.launch
+
+Terminal 3: (server)
+	source ~/catkin_ws/devel/setup.bash
+	rosrun group39_hw1 server
+
+Terminal 4: (client)
+	source ~/catkin_ws/devel/setup.bash
+	rosrun group39_hw1 client
+	
+Note that the client can be runned wihtout any command or with Pose_B coordinates:
+	es. rosrun group39_hw1 client
+	es. rosrun group39_hw1 client 10 0 90
