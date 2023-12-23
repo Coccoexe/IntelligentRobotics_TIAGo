@@ -209,9 +209,7 @@ include_directories(
 # catkin_add_nosetests(test)
 
 
-add_executable(movement_node src/movement_node.cpp)
 add_executable(server src/tiago_server.cpp)
 add_executable(client src/tiago_client.cpp)
-target_link_libraries(movement_node ${catkin_LIBRARIES})
 target_link_libraries(server ${catkin_LIBRARIES})
 target_link_libraries(client ${catkin_LIBRARIES})
