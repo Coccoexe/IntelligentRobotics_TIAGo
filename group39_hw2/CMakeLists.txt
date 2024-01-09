@@ -7,7 +7,10 @@ project(group39_hw2)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  tiago_iaslab_simulation
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -101,7 +104,7 @@ find_package(catkin REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES group39_hw2
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS roscpp
 #  DEPENDS system_lib
 )
 
@@ -113,7 +116,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-# ${catkin_INCLUDE_DIRS}
+ ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -171,7 +174,7 @@ include_directories(
 # install(TARGETS ${PROJECT_NAME}
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL  <exec_depend>message_runtime</exec_depend>_BIN_DESTINATION}
 # )
 
 ## Mark cpp header files for installation
@@ -200,3 +203,7 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(brain src/tiago_brain.cpp)
+add_dependencies(brain ${catkin_EXPORTED_TARGETS})
+target_link_libraries(brain ${catkin_LIBRARIES})
