@@ -1,4 +1,7 @@
 intro_tutorial/
 tiago_iaslab_simulation/
+apriltag/
+apriltag_ros/
+gazebo_ros_link_attacher/
 .vscode/
 Assignment_1.pdf
