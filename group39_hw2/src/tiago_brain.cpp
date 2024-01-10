@@ -12,7 +12,7 @@ struct Gr39_Coordinates
     float x, y, z;
 };
 
-void move_head()
+void move_head(float angle)
 {
     ROS_INFO("Moving head");
     // Move head to look at object
@@ -24,9 +24,9 @@ void move_head()
     goal.target.header.frame_id = "base_link";
     goal.target.point.x = 1.0;
     goal.target.point.y = 0.0;
-    goal.target.point.z = 0.0;
+    goal.target.point.z = angle;
     goal.pointing_frame = "xtion_optical_frame";
-    goal.pointing_axis.x = 1;
+    //goal.pointing_axis.z = 0.0;
     goal.max_velocity = 1.0;
     goal.min_duration = ros::Duration(1.0);
     ac.sendGoal(goal);
@@ -120,8 +120,9 @@ int main (int argc, char **argv)
         COORD_G = {8.5, -4, -180};
     const Gr39_Task TASK[] = {
         {{8.7, -2.7, -180}, {0.0, 0.0, -90}},   // Blue
-        {{7.5, -3.9, 90}, {0.0, 0.0, -90}},     // Green
+        {{7.7, -3.9, 90}, {0.0, 0.0, -90}},     // Green
         {{7.4, -2.1, -90}, {0.0, 0.0, -90}}};   // Red
+    const float head_up = 1.0, head_down = 0.5;
 
     // ROS Initialization
     ros::init(argc, argv, "tiago_brain");
@@ -149,9 +150,6 @@ int main (int argc, char **argv)
     for (int i = 0; i < srv.response.ids.size(); i++)
     {
         int id = srv.response.ids[i];
-        //gr39_pickup(id);
-        move_head();
-        break;
 
         // 1. Move to COORD_BASE
         if (!gr39_move(COORD_BASE.x, COORD_BASE.y, COORD_BASE.z))
@@ -178,7 +176,10 @@ int main (int argc, char **argv)
         }
 
         // 3. Pick up object
+        move_head(head_down);
         gr39_pickup(id);
+        move_head(head_up);
+        break;
 
         // 4.opt. Move to COORD_G
         if (id == 2)
