@@ -4,12 +4,19 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 #include <control_msgs/PointHeadAction.h>           // move_head
+#include <group39_hw2/DetectAction.h>               // detect
+#include <map>
+
+struct Gr39_Coordinates
+{
+    float x, y, z;
+};
 
 void move_head()
 {
     ROS_INFO("Moving head");
     // Move head to look at object
-    actionlib::SimpleActionClient<control_msgs::PointHeadAction> ac("head_controller/point_head", true);
+    actionlib::SimpleActionClient<control_msgs::PointHeadAction> ac("head_controller/point_head_action", true);
     ROS_INFO("Waiting for action server to start.");
     ac.waitForServer();
     ROS_INFO("Action server started, sending goal.");
@@ -52,23 +59,58 @@ bool gr39_move(float x, float y, float z)
     return finished_before_timeout;
 }
 
-void gr39_pickup(int id)
+int gr39_pickup(int id)
 {
-    // Pick up object id
+    // 1. Detection
+    actionlib::SimpleActionClient<group39_hw2::DetectAction> ac("detection", true);
+    ROS_INFO("Waiting for action server to start.");
+    ac.waitForServer();
+    ROS_INFO("Action server started, sending goal.");
+    group39_hw2::DetectGoal goal;
+    goal.ready = true;
+
+    ac.sendGoal(goal);
+    bool finished_before_timeout = ac.waitForResult(ros::Duration(10.0));
+    if (!finished_before_timeout)
+    {
+        ROS_INFO("Action did not finish before the time out.");
+        return -1;
+    }
+    actionlib::SimpleClientGoalState state = ac.getState();
+    ROS_INFO("Action finished: %s", state.toString().c_str());
+    group39_hw2::DetectResultConstPtr result = ac.getResult();
+
+    std::map<int, Gr39_Coordinates> detection;
+    for (const auto& obj : result->detectedObj)
+    {
+        detection[obj.id] = {obj.x, obj.y, obj.z};
+        ROS_INFO("Detected object %d at (%f, %f, %f)", obj.id, obj.x, obj.y, obj.z);
+    }
+    if (detection.find(id) == detection.end())
+    {
+        ROS_INFO("Object %d not detected", id);
+        return -1;
+    }
+    
+    // 2. Collisions
+
+
+    // 3. Pickup
+
+
+    return true;
 }
 
 void gr39_deliver(int id)
 {
-    // Place object id
+    // 1. Place object on table
+    // 2. Open gripper
+    // 3. Detach object from gripper
 }
 
 int main (int argc, char **argv)
 {
     // Constants
-    struct Gr39_Coordinates
-    {
-        float x, y, z;
-    };
     struct Gr39_Task
     {
         struct Gr39_Coordinates pickup, delivery;
@@ -106,11 +148,10 @@ int main (int argc, char **argv)
     // bgr
     for (int i = 0; i < srv.response.ids.size(); i++)
     {
-
+        int id = srv.response.ids[i];
+        //gr39_pickup(id);
         move_head();
         break;
-
-        int id = srv.response.ids[i];
 
         // 1. Move to COORD_BASE
         if (!gr39_move(COORD_BASE.x, COORD_BASE.y, COORD_BASE.z))

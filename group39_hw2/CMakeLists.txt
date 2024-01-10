@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   tiago_iaslab_simulation
   actionlib
   group39_hw1
+  std_msgs
+  apriltag_ros REQUIRED
 )
 
 ## System dependencies are found with CMake's conventions
@@ -48,11 +50,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
+ add_message_files(
+   FILES
+   DetectedObj.msg
 #   Message1.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -62,17 +65,18 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
+ add_action_files(
+   FILES
+   Detect.action
 #   Action2.action
-# )
+ )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   actionlib_msgs
+   std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -106,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES group39_hw2
-  CATKIN_DEPENDS roscpp actionlib move_base_msgs
+  CATKIN_DEPENDS roscpp actionlib move_base_msgs apriltag_ros
 #  DEPENDS system_lib
 )
 
@@ -207,5 +211,8 @@ include_directories(
 # catkin_add_nosetests(test)
 
 add_executable(brain src/tiago_brain.cpp)
+add_executable(detection src/tiago_detection.cpp)
 add_dependencies(brain ${catkin_EXPORTED_TARGETS})
+add_dependencies(detection ${catkin_EXPORTED_TARGETS})
 target_link_libraries(brain ${catkin_LIBRARIES})
+target_link_libraries(detection ${catkin_LIBRARIES})

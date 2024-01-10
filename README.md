@@ -41,4 +41,6 @@ Console 4:
 Console 5:
     rosrun group39_hw1 server
 Console 6:
+    rosrun group39_hw2 detection
+Console 7:
     rosrun group39_hw2 brain

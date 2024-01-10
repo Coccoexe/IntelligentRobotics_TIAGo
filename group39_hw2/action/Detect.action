@@ -1,0 +1,8 @@
+# Define the action goal
+bool ready
+---
+# Define the action result
+DetectedObj[] detectedObj
+---
+# Define the action feedback
+string f
