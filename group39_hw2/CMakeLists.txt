@@ -10,6 +10,8 @@ project(group39_hw2)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   tiago_iaslab_simulation
+  actionlib
+  group39_hw1
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES group39_hw2
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp actionlib move_base_msgs
 #  DEPENDS system_lib
 )
 

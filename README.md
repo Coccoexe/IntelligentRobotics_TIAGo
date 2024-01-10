@@ -38,3 +38,7 @@ Console 3:
 	roslaunch tiago_iaslab_simulation navigation.launch
 Console 4:
 	rosrun tiago_iaslab_simulation human_node
+Console 5:
+    rosrun group39_hw1 server
+Console 6:
+    rosrun group39_hw2 brain
