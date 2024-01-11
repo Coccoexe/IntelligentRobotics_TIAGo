@@ -10,6 +10,9 @@
 
 #define DEBUG true
 
+/**
+ * @brief Class for detecting objects in the environment, using AprilTags
+ */
 class Detection
 {
 protected:
@@ -22,18 +25,30 @@ private:
     {
         float x, y, z;
     };
-    std::map<int, Gr39_Coordinates> detection_map; // Map of detected objects <id, relative coordinates>
+
+    /// Map of detected objects <id, global coordinates>
+    std::map<int, Gr39_Coordinates> detection_map;
+    
+    /**
+     * @brief Callback function for the AprilTag detection
+     * @param msg AprilTag detection message
+     */
     void tagCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg)
     {
         ROS_INFO("Received tag detection");
         // Scan for objects
         for (const auto& detection : msg->detections)
-        {
+        {   // 1. Get the id of the detected object
             int id = detection.id[0];
-            if (detection_map.find(id) != detection_map.end()) continue; // Already detected
+
+            // 2. Check if the object has already been detected, if so, skip
+            if (detection_map.find(id) != detection_map.end()) continue;
+
+            // 3. Get the relative position of the detected object
             geometry_msgs::PoseWithCovarianceStamped pose = detection.pose;
             geometry_msgs::Point p = pose.pose.pose.position;
 
+            // 4. Transform the relative position to the global position
             tf::TransformListener listener;
             tf::StampedTransform transform;
             try
@@ -43,15 +58,15 @@ private:
                 double x = transform.getOrigin().x();
                 double y = transform.getOrigin().y();
                 double z = transform.getOrigin().z();
-                    
-                //position of the detected object
-                tf::Vector3 global_point = transform * tf::Vector3(p.x, p.y, p.z);
-                detection_map[id] = {(float)global_point.x(), (float)global_point.y(), (float)global_point.z()}; // Add to map
+                tf::Vector3 global_point = transform * tf::Vector3(p.x, p.y, p.z); 
+
+                // 5. Add the detected object to the map
+                detection_map[id] = {(float)global_point.x(), (float)global_point.y(), (float)global_point.z()};
                 ROS_INFO("Detected object %d at (%f, %f, %f)", id, global_point.x(), global_point.y(), global_point.z());
             }
             catch (tf::TransformException ex)
             {
-                ROS_ERROR("%s",ex.what());
+                ROS_ERROR("%s", ex.what());
             }
         }
     }
