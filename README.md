@@ -43,4 +43,9 @@ Console 5:
 Console 6:
     rosrun group39_hw2 detection
 Console 7:
+	rosrun group39_hw2 manipulation
+Console 8:
     rosrun group39_hw2 brain
+
+what tiago see and to manually move the head:
+	rosrun look_to_point look_to_point

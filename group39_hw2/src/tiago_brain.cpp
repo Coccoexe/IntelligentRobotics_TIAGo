@@ -5,7 +5,7 @@
 #include <actionlib/client/terminal_state.h>
 #include <control_msgs/PointHeadAction.h>           // move_head
 #include <group39_hw2/DetectAction.h>               // detect
-#include <map>
+#include <group39_hw2/ManipulateAction.h>           // manipulate
 
 struct Gr39_Coordinates
 {
@@ -61,6 +61,11 @@ bool gr39_move(float x, float y, float z)
 
 int gr39_pickup(int id)
 {
+    const float head_up = 1.0, head_down = 0.5;
+
+    // 0. Move head
+    move_head(head_down);
+
     // 1. Detection
     actionlib::SimpleActionClient<group39_hw2::DetectAction> ac("detection", true);
     ROS_INFO("Waiting for action server to start.");
@@ -80,23 +85,37 @@ int gr39_pickup(int id)
     ROS_INFO("Action finished: %s", state.toString().c_str());
     group39_hw2::DetectResultConstPtr result = ac.getResult();
 
-    std::map<int, Gr39_Coordinates> detection;
+    bool found = false;
     for (const auto& obj : result->detectedObj)
     {
-        detection[obj.id] = {obj.x, obj.y, obj.z};
+        if (obj.id == id) found = true;
         ROS_INFO("Detected object %d at (%f, %f, %f)", obj.id, obj.x, obj.y, obj.z);
     }
-    if (detection.find(id) == detection.end())
+    if (!found)
     {
-        ROS_INFO("Object %d not detected", id);
+        ROS_INFO("Object %d not found", id);
         return -1;
     }
     
-    // 2. Collisions
+    // 2. Manipulation
+    actionlib::SimpleActionClient<group39_hw2::ManipulateAction> ac2("manipulation", true);
+    ROS_INFO("Waiting for action server to start.");
+    ac2.waitForServer();
+    ROS_INFO("Action server started, sending goal.");
+    group39_hw2::ManipulateGoal goal2;
+    goal2.attach = true;
+    goal2.id = id;
+    goal2.detectedObj = result->detectedObj;
+    ac2.sendGoal(goal2);
+    finished_before_timeout = ac2.waitForResult(ros::Duration(10.0));
+    if (!finished_before_timeout)
+    {
+        ROS_INFO("Action did not finish before the time out.");
+        return -1;
+    }
 
-
-    // 3. Pickup
-
+    // 3. Move head
+    move_head(head_up);
 
     return true;
 }
@@ -122,7 +141,6 @@ int main (int argc, char **argv)
         {{8.7, -2.7, -180}, {0.0, 0.0, -90}},   // Blue
         {{7.7, -3.9, 90}, {0.0, 0.0, -90}},     // Green
         {{7.4, -2.1, -90}, {0.0, 0.0, -90}}};   // Red
-    const float head_up = 1.0, head_down = 0.5;
 
     // ROS Initialization
     ros::init(argc, argv, "tiago_brain");
@@ -150,6 +168,8 @@ int main (int argc, char **argv)
     for (int i = 0; i < srv.response.ids.size(); i++)
     {
         int id = srv.response.ids[i];
+        gr39_pickup(id);
+        break;
 
         // 1. Move to COORD_BASE
         if (!gr39_move(COORD_BASE.x, COORD_BASE.y, COORD_BASE.z))
@@ -176,9 +196,7 @@ int main (int argc, char **argv)
         }
 
         // 3. Pick up object
-        move_head(head_down);
         gr39_pickup(id);
-        move_head(head_up);
         break;
 
         // 4.opt. Move to COORD_G

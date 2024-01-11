@@ -13,7 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   group39_hw1
   std_msgs
-  apriltag_ros REQUIRED
+  apriltag_ros
+  moveit_ros_planning_interface
 )
 
 ## System dependencies are found with CMake's conventions
@@ -68,6 +69,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_action_files(
    FILES
    Detect.action
+   Manipulate.action
 #   Action2.action
  )
 
@@ -212,7 +214,10 @@ include_directories(
 
 add_executable(brain src/tiago_brain.cpp)
 add_executable(detection src/tiago_detection.cpp)
+add_executable(manipulation src/tiago_manipulation.cpp)
 add_dependencies(brain ${catkin_EXPORTED_TARGETS})
 add_dependencies(detection ${catkin_EXPORTED_TARGETS})
+add_dependencies(manipulation ${catkin_EXPORTED_TARGETS})
 target_link_libraries(brain ${catkin_LIBRARIES})
 target_link_libraries(detection ${catkin_LIBRARIES})
+target_link_libraries(manipulation ${catkin_LIBRARIES})

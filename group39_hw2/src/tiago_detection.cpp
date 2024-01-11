@@ -18,7 +18,6 @@ protected:
     ros::Subscriber tag_sub_;
     actionlib::SimpleActionServer<group39_hw2::DetectAction> as_;
 private:
-    const int N_SCANS = 20; // Number of scans to perform: tries to detect as many objects as possible
     struct Gr39_Coordinates
     {
         float x, y, z;

@@ -1,0 +1,10 @@
+# Define the action goal
+bool attach #true for attach and false to detach
+int8 id
+DetectedObj[] detectedObj
+---
+# Define the action result
+bool success
+---
+# Define the action feedback
+string f
