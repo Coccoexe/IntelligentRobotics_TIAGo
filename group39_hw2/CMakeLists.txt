@@ -15,6 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   apriltag_ros
   moveit_ros_planning_interface
+  geometry_msgs
+  tf2
+  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -78,6 +81,7 @@ find_package(catkin REQUIRED COMPONENTS
    DEPENDENCIES
    actionlib_msgs
    std_msgs
+   geometry_msgs
  )
 
 ################################################
@@ -112,7 +116,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES group39_hw2
-  CATKIN_DEPENDS roscpp actionlib move_base_msgs apriltag_ros
+  CATKIN_DEPENDS roscpp actionlib move_base_msgs apriltag_ros geometry_msgs
 #  DEPENDS system_lib
 )
 

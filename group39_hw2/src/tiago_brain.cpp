@@ -110,7 +110,8 @@ int gr39_pickup(int id)
     for (const auto& obj : result->detectedObj)
     {
         if (obj.id == id) found = true;
-        ROS_INFO("Detected object %d at (%f, %f, %f)", obj.id, obj.x, obj.y, obj.z);
+        //print pose
+        ROS_INFO("Object %d pose: x = %f, y = %f, z = %f", obj.id, obj.pose.position.x, obj.pose.position.y, obj.pose.position.z);
     }
     if (!found)
     {
@@ -156,7 +157,7 @@ int main (int argc, char **argv)
     // Constants
     struct Gr39_Task
     {
-        struct Gr39_Coordinates pickup, delivery;
+        Gr39_Coordinates pickup, delivery;
     };
     const Gr39_Coordinates
         COORD_BASE = {8.5, 0.5, -45},
@@ -185,7 +186,7 @@ int main (int argc, char **argv)
     ROS_INFO("Object ID: %d", srv.response.ids[1]);
     ROS_INFO("Object ID: %d", srv.response.ids[2]);
 
-    // bgr
+    // Perform tasks for each object id received
     for (int i = 0; i < srv.response.ids.size(); i++)
     {
         int id = srv.response.ids[i];
@@ -215,7 +216,11 @@ int main (int argc, char **argv)
         }
 
         // 3. Pick up object
-        gr39_pickup(id);
+        if (gr39_pickup(id) == -1)
+        {
+            ROS_INFO("TIAGo -> PICKUP failed.");
+            return -1;
+        }
         break;
 
         // 4.opt. Move to COORD_G
