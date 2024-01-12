@@ -78,7 +78,7 @@ private:
     }
 public:
     Manipulation(std::string name)
-    : as_(nh_, name, boost::bind(&Manipulation::executeCB, this, _1), false), action_name_(name), move_group_("arm")
+    : as_(nh_, name, boost::bind(&Manipulation::executeCB, this, _1), false), action_name_(name), move_group_("arm_torso")
     {
         as_.start();
     }
@@ -106,22 +106,14 @@ public:
                 {
                     target_pose.pose.position.x = obj.x;
                     target_pose.pose.position.y = obj.y;
-                    target_pose.pose.position.z = obj.z + 0.5;
+                    target_pose.pose.position.z = obj.z + 0.4;
                 }
             }
 
             move_group_.setPoseReferenceFrame("map");
-
-            //cartesian path
-            std::vector<geometry_msgs::Pose> waypoints;
-            waypoints.push_back(move_group_.getCurrentPose().pose);
-            waypoints.push_back(target_pose.pose);
-            moveit_msgs::RobotTrajectory trajectory;
-            const double eef = 0.01;
-            double fraction = move_group_.computeCartesianPath(waypoints, eef, 0.0, trajectory);
-            moveit::planning_interface::MoveGroupInterface::Plan plan;
-            plan.trajectory_ = trajectory;
-            move_group_.execute(plan);
+            move_group_.setPoseTarget(target_pose);
+            move_group_.setPlanningTime(10.0);
+            move_group_.move();
 
         }
 

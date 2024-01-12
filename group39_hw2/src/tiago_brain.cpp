@@ -164,7 +164,7 @@ int main (int argc, char **argv)
     const Gr39_Task TASK[] = {
         {{8.9, -2.7, -180}, {0.0, 0.0, -90}},   // Blue
         {{7.7, -4.1, 90}, {0.0, 0.0, -90}},     // Green
-        {{7.4, -1.9, -90}, {0.0, 0.0, -90}}};   // Red
+        {{7.2, -1.9, -50}, {0.0, 0.0, -90}}};   // Red
 
     // ROS Initialization
     ros::init(argc, argv, "tiago_brain");
