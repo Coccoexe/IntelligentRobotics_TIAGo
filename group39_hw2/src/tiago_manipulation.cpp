@@ -211,7 +211,19 @@ private:
     {
         planning_scene_interface_.removeCollisionObjects(planning_scene_interface_.getKnownObjectNames());
     }
-
+    void removeCollisionById(int id)
+    {
+        std::string id_str = std::to_string(id);
+        std::vector<std::string> ids;
+        for (const auto& obj : collisionObjects_)
+        {
+            if (obj.id == id_str)
+            {
+                ids.push_back(obj.id);
+            }
+        }
+        planning_scene_interface_.removeCollisionObjects(ids);
+    }
     // ARM
     geometry_msgs::Quaternion gripperOrientation(double roll, double pitch, double yaw)
     {
@@ -234,6 +246,7 @@ private:
         move_group_.setStartStateToCurrentState();
         move_group_.setMaxVelocityScalingFactor(1.0);
         move_group_.setPlanningTime(6.0);
+        move_group_.setGoalJointTolerance(0.05);
 
         //planning
         moveit::planning_interface::MoveGroupInterface::Plan my_plan;
@@ -242,7 +255,7 @@ private:
         //execute
         if (!success)
         {
-            ROS_ERROR("Failed to move arm");
+            ROS_ERROR("Failed to plan");
             return false;
         }
 
@@ -255,6 +268,15 @@ private:
     {
         point.z += dist;
         return moveArm(point, gripperOrientation(0, M_PI_2, 0));
+    }
+    bool safePosition()
+    {
+        geometry_msgs::Point point;
+        point.x = 0.2;
+        point.y = 0.2;
+        point.z = 1.6;
+        geometry_msgs::Quaternion orientation = gripperOrientation(0, 0, 4.71);
+        return moveArm(point, orientation);
     }
 
     // GRIPPER
@@ -296,6 +318,76 @@ private:
     bool closeGripper()
     {
         return moveGripper(0.0, 0.0);
+    }
+
+    // PICK AND PLACE
+    bool pickObject(int id)
+    {
+        gazebo_ros_link_attacher::Attach attach_srv_msg;
+        attach_srv_msg.request.model_name_1 = "tiago";
+        attach_srv_msg.request.link_name_1 = "arm_7_link";
+        switch (id)
+        {
+            case 1:
+                attach_srv_msg.request.model_name_2 = "Hexagon";
+                attach_srv_msg.request.link_name_2 = "Hexagon_link";
+                break;
+            case 2:
+                attach_srv_msg.request.model_name_2 = "Triangle";
+                attach_srv_msg.request.link_name_2 = "Triangle_link";
+                break;
+            case 3:
+                attach_srv_msg.request.model_name_2 = "Cube";
+                attach_srv_msg.request.link_name_2 = "Cube_link";
+                break;
+            default:
+                ROS_ERROR("Object with id %d not supported", id);
+                return false;
+        }
+        if (attachService_.call(attach_srv_msg))
+        {
+            ROS_INFO("Attached object");
+            return true;
+        }
+        else
+        {
+            ROS_ERROR("Failed to attach object");
+            return false;
+        }
+    }
+    bool placeObject(int id)
+    {
+        gazebo_ros_link_attacher::Attach attach_srv_msg;
+        attach_srv_msg.request.model_name_1 = "tiago";
+        attach_srv_msg.request.link_name_1 = "arm_7_link";
+        switch (id)
+        {
+            case 1:
+                attach_srv_msg.request.model_name_2 = "Hexagon";
+                attach_srv_msg.request.link_name_2 = "Hexagon_link";
+                break;
+            case 2:
+                attach_srv_msg.request.model_name_2 = "Triangle";
+                attach_srv_msg.request.link_name_2 = "Triangle_link";
+                break;
+            case 3:
+                attach_srv_msg.request.model_name_2 = "Cube";
+                attach_srv_msg.request.link_name_2 = "Cube_link";
+                break;
+            default:
+                ROS_ERROR("Object with id %d not supported", id);
+                return false;
+        }
+        if (detachService_.call(attach_srv_msg))
+        {
+            ROS_INFO("Detached object");
+            return true;
+        }
+        else
+        {
+            ROS_ERROR("Failed to detach object");
+            return false;
+        }
     }
 
 public:
@@ -368,11 +460,41 @@ public:
             approachFromAbove(object_pose.position, approach_dist);
             approachFromAbove(object_pose.position, target_dist);
 
+            //remove collision of object to pick
+            removeCollisionById(goal->id);
+
+            pickObject(goal->id);
+            closeGripper();
+
+            //move arm up
+            approachFromAbove(object_pose.position, approach_dist);
+
+            //move arm to safe position
+            safePosition();
         }
+        else
+        {
+            geometry_msgs::Point point;
+            point.x = 0.8;
+            point.y = 0.0;
+            point.z = 1.0;
+            moveArm(point, gripperOrientation(0, M_PI_2, 0));
+
+            openGripper();
+
+            placeObject(goal->id);
+
+            safePosition();
+        }
+
+        //remove collision objects
+        removeCollisionObjects();
 
         //if goal detach
 
-        as_.setSucceeded();
+        group39_hw2::ManipulateResult result;
+        result.success = true;
+        as_.setSucceeded(result);
 
         //delete planning scene
         //planning_scene_interface_.removeCollisionObjects(planning_scene_interface_.getKnownObjectNames());
