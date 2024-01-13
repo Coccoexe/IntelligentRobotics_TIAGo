@@ -14,5 +14,5 @@ sleep 5
 gnome-terminal --title="Manipulation" -- bash -c "cd ~/catkin_ws; source devel/setup.bash; rosrun group39_hw2 manipulation"
 sleep 10
 gnome-terminal --title="Brain" -- bash -c "cd ~/catkin_ws; source devel/setup.bash; rosrun group39_hw2 brain"
-sleep 5
-gnome-terminal --title="DEBUG" -- bash -c "cd ~/catkin_ws; source devel/setup.bash; rosrun look_to_point look_to_point"
+#sleep 5
+#gnome-terminal --title="DEBUG" -- bash -c "cd ~/catkin_ws; source devel/setup.bash; rosrun look_to_point look_to_point"

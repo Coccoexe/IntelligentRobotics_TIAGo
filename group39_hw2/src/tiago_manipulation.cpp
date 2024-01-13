@@ -7,13 +7,14 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <vector>
 
-#include <moveit_msgs/CollisionObject.h> // new
-#include <control_msgs/FollowJointTrajectoryAction.h> // new
-#include <gazebo_ros_link_attacher/Attach.h> // new
-#include <tf2_ros/transform_listener.h> // new
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h> // new
+#include <moveit_msgs/CollisionObject.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <gazebo_ros_link_attacher/Attach.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #define DEBUG true
+#define MANUAL_MODE false
 
 class Manipulation
 {
@@ -22,17 +23,21 @@ protected:
     std::string action_name_;
     ros::Subscriber tag_sub_;
     actionlib::SimpleActionServer<group39_hw2::ManipulateAction> as_;
+    ros::AsyncSpinner spinner_;
+    boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>> gripper_client_;
+    ros::ServiceClient attachService_;
+    ros::ServiceClient detachService_;
 
-    ros::AsyncSpinner spinner_; // new
-    std::vector<moveit_msgs::CollisionObject> collisionObjects_; // new
-    boost::shared_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>> gripper_client_; // new
-    ros::ServiceClient attachService_; // new
-    ros::ServiceClient detachService_; // new
+    /// @brief The vector of collision objects that we will be adding to the world
+    std::vector<moveit_msgs::CollisionObject> collisionObjects_;
 
 private:
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
     moveit::planning_interface::MoveGroupInterface move_group_;
 
+    /**
+     * @brief Add static collision objects to planing scene
+     */
     void addStaticCollisionObjects()
     {        
         // List of immovable object data pick_table
@@ -157,74 +162,102 @@ private:
 
         collisionObjects_.push_back(constructionCone4);
 
-        planning_scene_interface_.applyCollisionObjects(collisionObjects_); // Add collision objects to planing scene
+        // Add collision objects to planing scene
+        planning_scene_interface_.applyCollisionObjects(collisionObjects_);
     }
+
+    /**
+     * @brief Add collision objects to planing scene
+     * 
+     * @param goal Goal message
+     */
     void addCollisionObject(const group39_hw2::ManipulateGoalConstPtr &goal)
     {
         for (const auto& obj : goal->detectedObj)
-        {
+        {   // Cycle through all detected objects
             moveit_msgs::CollisionObject collision_object;
             collision_object.header.frame_id = "base_footprint";
             collision_object.id = std::to_string(obj.id);
             collision_object.primitives.resize(1);
 
-            if (obj.id == 1) // blue
+            if (obj.id < 1 || obj.id > 7) { ROS_ERROR("ERROR  | Object with id %d not supported", obj.id); continue; }
+            switch (obj.id)
             {
+            case 1: // blue
                 collision_object.primitives[0].type = collision_object.primitives[0].CYLINDER;
                 collision_object.primitives[0].dimensions.resize(2);
-                collision_object.primitives[0].dimensions[0] = 0.1; // Height
+                collision_object.primitives[0].dimensions[0] = 0.1;  // Height
                 collision_object.primitives[0].dimensions[1] = 0.03; // Radious
-            }
-            else if (obj.id == 2) // green
-            {
+                break;
+            case 2: // green
                 collision_object.primitives[0].type = collision_object.primitives[0].BOX;
                 collision_object.primitives[0].dimensions.resize(3);
-                collision_object.primitives[0].dimensions[0] = 0.07; // x
-                collision_object.primitives[0].dimensions[1] = 0.05; // y
-                collision_object.primitives[0].dimensions[2] = 0.05; // z
-            }
-            else if (obj.id == 3) // red
-            {
+                collision_object.primitives[0].dimensions[0] = 0.07; // X
+                collision_object.primitives[0].dimensions[1] = 0.05; // Y
+                collision_object.primitives[0].dimensions[2] = 0.05; // Z
+                break;
+            case 3: // red
                 collision_object.primitives[0].type = collision_object.primitives[0].BOX;
                 collision_object.primitives[0].dimensions.resize(3);
-                collision_object.primitives[0].dimensions[0] = 0.05; // x
-                collision_object.primitives[0].dimensions[1] = 0.05; // y
-                collision_object.primitives[0].dimensions[2] = 0.05; // z
-            }
-            else if (obj.id > 3 && obj.id < 8)
-            {
+                collision_object.primitives[0].dimensions[0] = 0.05; // X
+                collision_object.primitives[0].dimensions[1] = 0.05; // Y
+                collision_object.primitives[0].dimensions[2] = 0.05; // Z
+                break;
+            default: // obstacles (4-7)
                 collision_object.primitives[0].type = collision_object.primitives[0].CYLINDER;
                 collision_object.primitives[0].dimensions.resize(2);
-                collision_object.primitives[0].dimensions[0] = 0.2; // Height
-                collision_object.primitives[0].dimensions[1] = 0.05; // Radious
+                collision_object.primitives[0].dimensions[0] = 0.2 + 0.02;  // Height
+                collision_object.primitives[0].dimensions[1] = 0.05 + 0.002; // Radious
+                break;
             }
 
+            // Set pose
             collision_object.primitive_poses.resize(1);
             collision_object.primitive_poses[0] = obj.pose;
             collision_object.primitive_poses[0].position.z -= collision_object.primitives[0].dimensions[0] / 2;
             collision_object.operation = collision_object.ADD;
             collisionObjects_.push_back(collision_object);
         }
-        planning_scene_interface_.applyCollisionObjects(collisionObjects_); // Add collision objects to planing scene
+
+        // Add collision objects to planing scene
+        planning_scene_interface_.applyCollisionObjects(collisionObjects_);
     }
+
+    /**
+     * @brief Remove all collision objects
+     */
     void removeCollisionObjects()
     {
-        planning_scene_interface_.removeCollisionObjects(planning_scene_interface_.getKnownObjectNames());
+        std::vector<std::string> ids;
+
+        // Remove all
+        for (const auto& obj : collisionObjects_) ids.push_back(obj.id);
+        planning_scene_interface_.removeCollisionObjects(ids);
     }
+
+    /**
+     * @brief Remove collision object by ID
+     * 
+     * @param id Object ID
+     */
     void removeCollisionById(int id)
     {
         std::string id_str = std::to_string(id);
         std::vector<std::string> ids;
-        for (const auto& obj : collisionObjects_)
-        {
-            if (obj.id == id_str)
-            {
-                ids.push_back(obj.id);
-            }
-        }
+
+        // Match ID and remove
+        for (const auto& obj : collisionObjects_) if (obj.id == id_str) ids.push_back(obj.id);
         planning_scene_interface_.removeCollisionObjects(ids);
     }
-    // ARM
+    
+    /**
+     * @brief Get the gripper orientation
+     * 
+     * @param roll Roll
+     * @param pitch Pitch
+     * @param yaw Yaw
+     * @return geometry_msgs::Quaternion Gripper orientation
+     */
     geometry_msgs::Quaternion gripperOrientation(double roll, double pitch, double yaw)
     {
         tf2::Quaternion q;
@@ -232,56 +265,89 @@ private:
         q = q.normalize();
         return tf2::toMsg(q);
     }
+
+    /**
+     * @brief Move arm to position
+     * 
+     * @param point Position
+     * @param orientation Orientation
+     * @return true if action succeeded
+     * @return false if action failed
+     */
     bool moveArm(geometry_msgs::Point point, geometry_msgs::Quaternion orientation)
     {
-        ROS_INFO("Moving arm to point (%f, %f, %f)", point.x, point.y, point.z);
-
+        ROS_INFO("START  | Moving arm to point (%f, %f, %f)", point.x, point.y, point.z);
         geometry_msgs::PoseStamped target_pose;
         target_pose.header.frame_id = "base_footprint";
         target_pose.pose.position = point;
         target_pose.pose.orientation = orientation;
 
-        //set target
+        // Set target pose
         move_group_.setPoseTarget(target_pose);
         move_group_.setStartStateToCurrentState();
-        move_group_.setMaxVelocityScalingFactor(1.0);
-        move_group_.setPlanningTime(6.0);
+        move_group_.setMaxVelocityScalingFactor(0.7);
+        move_group_.setPlanningTime(8.0);
         move_group_.setGoalJointTolerance(0.05);
 
-        //planning
+        // Plan
         moveit::planning_interface::MoveGroupInterface::Plan my_plan;
         bool success = (move_group_.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
-        //execute
+        // Execute
         if (!success)
         {
-            ROS_ERROR("Failed to plan");
+            ROS_ERROR("ERROR  |Failed to plan");
             return false;
         }
-
-        ROS_INFO("Moving arm");
+        ROS_INFO("ACTION | Moving arm");
         move_group_.move();
         return true;
     }
-    // approach object from above with gripper facing down
+    
+    /**
+     * @brief Move arm to object from above, with gripper pointing down
+     * 
+     * @param point Object position
+     * @param dist Distance to object
+     * @return true if action succeeded
+     * @return false if action failed
+     */
     bool approachFromAbove(geometry_msgs::Point point, double dist)
     {
         point.z += dist;
         return moveArm(point, gripperOrientation(0, M_PI_2, 0));
     }
+
+    /**
+     * @brief Move arm to safe position
+     * 
+     * @return true if action succeeded
+     * @return false if action failed
+     */
     bool safePosition()
     {
+        // Define safe position
         geometry_msgs::Point point;
         point.x = 0.2;
         point.y = 0.2;
         point.z = 1.6;
         geometry_msgs::Quaternion orientation = gripperOrientation(0, 0, 4.71);
+
+        // Move arm to safe position
         return moveArm(point, orientation);
     }
 
-    // GRIPPER
+    /**
+     * @brief Move gripper
+     * 
+     * @param finger_1 Position of finger 1
+     * @param finger_2 Position of finger 2
+     * @return true if action succeeded
+     * @return false if action failed
+     */
     bool moveGripper(double finger_1, double finger_2)
     {
+        // Setting goal
         control_msgs::FollowJointTrajectoryGoal goal;
         goal.trajectory.joint_names.push_back("gripper_left_finger_joint");
         goal.trajectory.joint_names.push_back("gripper_right_finger_joint");
@@ -291,139 +357,176 @@ private:
         goal.trajectory.points[i].positions[0] = finger_1;
         goal.trajectory.points[i].positions[1] = finger_2;
         goal.trajectory.points[i].velocities.resize(2);
-        for (int j = 0; j < 2; ++j)
-        {
-            goal.trajectory.points[i].velocities[j] = 1.0;
-        }
+        for (int j = 0; j < 2; ++j) goal.trajectory.points[i].velocities[j] = 1.0;
         goal.trajectory.points[i].time_from_start = ros::Duration(2.0);
 
+        // Sending goal
         goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
         gripper_client_->sendGoalAndWait(goal);
-
         if (gripper_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
             ROS_INFO("Gripper moved");
             return true;
         }
-        else
-        {
-            ROS_INFO("Gripper failed to move");
-            return false;
-        }
+        ROS_INFO("Gripper failed to move");
+        return false;
     }
-    bool openGripper()
-    {
-        return moveGripper(0.04, 0.04);
-    }
-    bool closeGripper()
-    {
-        return moveGripper(0.0, 0.0);
-    }
+    
+    /**
+     * @brief Open gripper
+     * 
+     * @return true if action succeeded
+     * @return false if action failed
+     */
+    bool openGripper() { return moveGripper(0.05, 0.05); }
 
-    // PICK AND PLACE
+    /**
+     * @brief Close gripper
+     * 
+     * @return true if action succeeded
+     * @return false if action failed
+     */
+    bool closeGripper() { return moveGripper(0.0, 0.0); }
+
+    /**
+     * @brief Pick object from table
+     * 
+     * @param id Object ID
+     * @return true if action succeeded
+     * @return false if action failed
+     */
     bool pickObject(int id)
     {
         gazebo_ros_link_attacher::Attach attach_srv_msg;
         attach_srv_msg.request.model_name_1 = "tiago";
         attach_srv_msg.request.link_name_1 = "arm_7_link";
+
+        // ID cases
         switch (id)
         {
-            case 1:
-                attach_srv_msg.request.model_name_2 = "Hexagon";
-                attach_srv_msg.request.link_name_2 = "Hexagon_link";
-                break;
-            case 2:
-                attach_srv_msg.request.model_name_2 = "Triangle";
-                attach_srv_msg.request.link_name_2 = "Triangle_link";
-                break;
-            case 3:
-                attach_srv_msg.request.model_name_2 = "Cube";
-                attach_srv_msg.request.link_name_2 = "Cube_link";
-                break;
-            default:
-                ROS_ERROR("Object with id %d not supported", id);
-                return false;
+        case 1: // blue
+            attach_srv_msg.request.model_name_2 = "Hexagon";
+            attach_srv_msg.request.link_name_2 = "Hexagon_link";
+            break;
+        case 2: // green
+            attach_srv_msg.request.model_name_2 = "Triangle";
+            attach_srv_msg.request.link_name_2 = "Triangle_link";
+            break;
+        case 3: // red
+            attach_srv_msg.request.model_name_2 = "Cube";
+            attach_srv_msg.request.link_name_2 = "Cube_link";
+            break;
+        default: // other
+            ROS_ERROR("Object with id %d not supported", id);
+            return false;
         }
+
+        // Check if object is attached
         if (attachService_.call(attach_srv_msg))
         {
             ROS_INFO("Attached object");
             return true;
         }
-        else
-        {
-            ROS_ERROR("Failed to attach object");
-            return false;
-        }
+        ROS_ERROR("Failed to attach object");
+        return false;
     }
+
+    /**
+     * @brief Place object on table
+     * 
+     * @param id Object ID
+     * @return true if action succeeded
+     * @return false if action failed
+     */
     bool placeObject(int id)
     {
         gazebo_ros_link_attacher::Attach attach_srv_msg;
         attach_srv_msg.request.model_name_1 = "tiago";
         attach_srv_msg.request.link_name_1 = "arm_7_link";
+
+        // ID cases
         switch (id)
         {
-            case 1:
-                attach_srv_msg.request.model_name_2 = "Hexagon";
-                attach_srv_msg.request.link_name_2 = "Hexagon_link";
-                break;
-            case 2:
-                attach_srv_msg.request.model_name_2 = "Triangle";
-                attach_srv_msg.request.link_name_2 = "Triangle_link";
-                break;
-            case 3:
-                attach_srv_msg.request.model_name_2 = "Cube";
-                attach_srv_msg.request.link_name_2 = "Cube_link";
-                break;
-            default:
-                ROS_ERROR("Object with id %d not supported", id);
-                return false;
+        case 1: // blue
+            attach_srv_msg.request.model_name_2 = "Hexagon";
+            attach_srv_msg.request.link_name_2 = "Hexagon_link";
+            break;
+        case 2: // green
+            attach_srv_msg.request.model_name_2 = "Triangle";
+            attach_srv_msg.request.link_name_2 = "Triangle_link";
+            break;
+        case 3: // red
+            attach_srv_msg.request.model_name_2 = "Cube";
+            attach_srv_msg.request.link_name_2 = "Cube_link";
+            break;
+        default: // other
+            ROS_ERROR("Object with id %d not supported", id);
+            return false;
         }
+
+        // Check if object is on table
         if (detachService_.call(attach_srv_msg))
         {
             ROS_INFO("Detached object");
             return true;
         }
-        else
-        {
-            ROS_ERROR("Failed to detach object");
-            return false;
-        }
+        ROS_ERROR("Failed to detach object");
+        return false;
     }
 
 public:
+    /**
+     * @brief Construct a new Manipulation object
+     * 
+     * @param name Name of the action
+     */
     Manipulation(std::string name)
     : as_(nh_, name, boost::bind(&Manipulation::executeCB, this, _1), false), action_name_(name), move_group_("arm_torso"), spinner_(1)
     {
-        gripper_client_.reset(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>("/gripper_controller/follow_joint_trajectory", true)); // new
-        while (!gripper_client_->waitForServer(ros::Duration(5.0))) // new
-        {
-            ROS_INFO("Waiting for the gripper action server to come up");
-        }
-        attachService_ = nh_.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/attach"); // new
-        attachService_.waitForExistence(); // new
-        detachService_ = nh_.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/detach"); // new
-        detachService_.waitForExistence(); // new
-        spinner_.start(); // new
+        gripper_client_.reset(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>("/gripper_controller/follow_joint_trajectory", true));
+        while (!gripper_client_->waitForServer(ros::Duration(5.0))) ROS_INFO("Waiting for the gripper action server to come up");
 
+        // Attach and detach services
+        attachService_ = nh_.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/attach");
+        attachService_.waitForExistence();
+        detachService_ = nh_.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/detach");
+        detachService_.waitForExistence();
+        spinner_.start();
+
+        // To safe position
+        safePosition();
+
+        // Start action server
         as_.start();
     }
+
+    /**
+     * @brief Destroy the Manipulation object
+     */
     ~Manipulation(void) { spinner_.stop(); }
+
+    /**
+     * @brief Callback function for the action server
+     * 
+     * @param goal Goal message
+     */
     void executeCB(const group39_hw2::ManipulateGoalConstPtr &goal)
     {
-        //print goal
+        // Print goal
         ROS_INFO("Received goal");
         ROS_INFO("Attach: %d", goal->attach);
         ROS_INFO("ID: %d", goal->id);
         
-        //make collision object
+        // Add collision objects
+        collisionObjects_.clear();
         addStaticCollisionObjects();
 
-        //if goal attach
+        // Manipulate
         if (goal->attach)
-        {
+        {   // ATTACH
             addCollisionObject(goal);
 
-            //object to attach
+            // Object to attach
             geometry_msgs::Pose object_pose;
             for (const auto& obj : goal->detectedObj)
             {
@@ -433,10 +536,9 @@ public:
                     break;
                 }
             }
-
             openGripper();
 
-            //define distances to the object
+            // Define distances to the object
             double approach_dist, target_dist;
             switch(goal->id)
             {
@@ -449,56 +551,64 @@ public:
                     target_dist = 0.24;
                     break;
                 case 3: // red
-                    approach_dist = 0.25;
-                    target_dist = 0.20;
+                    approach_dist = 0.26;
+                    target_dist = 0.18;
                     break;
                 default: // other
-                    ROS_ERROR("Object with id %d not supported", goal->id);
+                    ROS_ERROR("ERROR  | Object with id %d not supported", goal->id);
                     break;
             }
 
+            // Move arm to object
             approachFromAbove(object_pose.position, approach_dist);
             approachFromAbove(object_pose.position, target_dist);
 
-            //remove collision of object to pick
+            // Remove collision of object to pick
             removeCollisionById(goal->id);
 
+            // Pick object
             pickObject(goal->id);
+
+            if (MANUAL_MODE) { ROS_INFO("Press enter to pick object"); std::cin.ignore(); }
             closeGripper();
 
-            //move arm up
-            approachFromAbove(object_pose.position, approach_dist);
+            // Wait for object to be picked
+            ros::Duration(4.0).sleep();
 
-            //move arm to safe position
+            // Move arm to safe position
+            approachFromAbove(object_pose.position, approach_dist);
             safePosition();
         }
         else
-        {
+        {   // DETACH
             geometry_msgs::Point point;
             point.x = 0.8;
             point.y = 0.0;
-            point.z = 1.0;
+            point.z = 1.05;
+
+            // Move arm to place
             moveArm(point, gripperOrientation(0, M_PI_2, 0));
 
+            // Deliver object
             openGripper();
+            if (MANUAL_MODE) { ROS_INFO("Press enter to place object"); std::cin.ignore(); }
+
+            // wait for object to fall
+            ros::Duration(4.0).sleep();
 
             placeObject(goal->id);
 
+            // Move arm to safe position
             safePosition();
         }
 
-        //remove collision objects
+        // Remove collision objects
         removeCollisionObjects();
 
-        //if goal detach
-
+        // Set result
         group39_hw2::ManipulateResult result;
         result.success = true;
         as_.setSucceeded(result);
-
-        //delete planning scene
-        //planning_scene_interface_.removeCollisionObjects(planning_scene_interface_.getKnownObjectNames());
-
     }
 };
 

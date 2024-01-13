@@ -11,12 +11,16 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 
-#define DEBUG false
+#define MANUAL_MODE true
+#define ONLY_ONE false
 
 class TiagoBrain
 {
 private:
+    /// @brief Structs for storing coordinates
     struct Gr39_Coordinates { float x, y, z; };
+
+    /// @brief Struct for storing pickup and delivery coordinates (task)
     struct Gr39_Task { Gr39_Coordinates pickup, delivery; };
 
     /**
@@ -33,7 +37,7 @@ private:
      * @param x X coordinate
      * @param y Y coordinate
      * @param z Z angle (in degrees)
-     * @throws std::runtime_error if movement server does not finish after 60 seconds
+     * @throws std::runtime_error if movement server does not succeed
      */
     void gr39_move(float x, float y, float z);
     
@@ -41,17 +45,23 @@ private:
      * @brief Perform pickup task for a given object ID
      * 
      * @param id Object ID
-     * @throws std::runtime_error if no objects are detected, if object with given ID is not detected, or if actions take too long
+     * @throws std::runtime_error if no objects are detected, if object with given ID is not detected, or if actions do not succeed
      */
     void gr39_pickup(int id);
 
+    /**
+     * @brief Perform delivery task for a given object ID
+     * 
+     * @param id Object ID
+     * @throws std::runtime_error if actions do not succeed
+     */
     void gr39_deliver(int id);
 
     /**
      * @brief Move TIAGo's head to a given angle
      * 
      * @param a Angle
-     * @throws std::runtime_error if head movement server does not finish after 10 seconds
+     * @throws std::runtime_error if head movement server does not succeed
      */
     void gr39_move_head(float a);
 
@@ -59,7 +69,7 @@ private:
      * @brief Move TIAGo's torso to a given angle
      * 
      * @param a Angle
-     * @throws std::runtime_error if torso movement server does not finish after 10 seconds
+     * @throws std::runtime_error if torso movement server does not succeed
      */
     void gr39_move_torso(float a);
 
@@ -83,12 +93,13 @@ TiagoBrain::TiagoBrain()
     if (!client.call(srv)) { ROS_ERROR("ERROR | Failed to call service human_objects_srv"); return; }
 
     // Process objects
+    if (MANUAL_MODE) srv.response.ids = {3};
     for (int id : srv.response.ids)
     {
         ROS_INFO("\nProcessing object %d ..", id);
         try { gr39_task(id); }
         catch (const std::exception& e) { ROS_ERROR("ERROR | %s", e.what()); }
-        if (DEBUG) break;
+        if (ONLY_ONE) break;
     }
 }
 
@@ -100,9 +111,9 @@ void TiagoBrain::gr39_task(int id)
     const struct { float x, y; } BASE = {8.5, 0.5};
     const Gr39_Task TASKS[3] =
     {
-        { {8.15, -2.1, -90}, {12.5, 0.6, -90} }, //{ {8.9, -2.7, -180}, {0.0, 0.0, -90} }, // Blue
-        { {7.8, -4, 90},   {11.45, 0.6, -90} }, //{ {7.7, -4.1, 90},   {0.0, 0.0, -90} }, // Green
-        { {7.45, -2, -70},  {10.5, 0.6, -90} }  //{ {7.2, -1.9, -50},  {0.0, 0.0, -90} }  // Red
+        { {8.1, -2.1, -90},  {12.5, 0.5, -90} }, //{ {8.9, -2.7, -180}, {0.0, 0.0, -90} }, // Blue
+        { {7.8, -4.0, 90},   {11.4, 0.5, -90} }, //{ {7.7, -4.1, 90},   {0.0, 0.0, -90} }, // Green
+        { {7.35, -2.0, -70},  {10.5, 0.5, -90} }  //{ {7.2, -1.9, -50},  {0.0, 0.0, -90} }  // Red
     };
 
     // Position in front of object
@@ -134,12 +145,11 @@ void TiagoBrain::gr39_move(float x, float y, float z)
     goal.x = x;
     goal.y = y;
     goal.theta = z;
-    ac.sendGoal(goal);
-
-    // Waiting for result
-    if (!ac.waitForResult(ros::Duration(60.0))) throw std::runtime_error("Movement server did not finish after 60 seconds");
-    actionlib::SimpleClientGoalState state = ac.getState();
-    ROS_INFO("STATUS | Movement server finished with state %s", state.toString().c_str());
+    ac.sendGoalAndWait(goal);
+    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("STATUS | Movement server finished with state %s", ac.getState().toString().c_str());
+    else
+        throw std::runtime_error("Movement server did not finish successfully");
 }
 
 void TiagoBrain::gr39_pickup(int id)
@@ -158,10 +168,11 @@ void TiagoBrain::gr39_pickup(int id)
     // Setting goal
     group39_hw2::DetectGoal goal;
     goal.ready = true;
-    ac.sendGoal(goal);
-    if (!ac.waitForResult(ros::Duration(10.0))) throw std::runtime_error("Detection server did not finish after 10 seconds");
-    actionlib::SimpleClientGoalState state = ac.getState();
-    ROS_INFO("STATUS | Detection server finished with state %s", state.toString().c_str());
+    ac.sendGoalAndWait(goal);
+    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("STATUS | Detection server finished with state %s", ac.getState().toString().c_str());
+    else
+        throw std::runtime_error("Detection server did not finish successfully");
 
     // Get and check results
     group39_hw2::DetectResultConstPtr result = ac.getResult();
@@ -181,8 +192,11 @@ void TiagoBrain::gr39_pickup(int id)
     goal2.attach = true;
     goal2.id = id;
     goal2.detectedObj = result->detectedObj;
-    ac2.sendGoal(goal2);
-    if (!ac2.waitForResult(ros::Duration(60.0))) throw std::runtime_error("Manipulation server did not finish after 60 seconds");
+    ac2.sendGoalAndWait(goal2);
+    if (ac2.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("STATUS | Manipulation server finished with state %s", ac2.getState().toString().c_str());
+    else
+        throw std::runtime_error("Manipulation server did not finish successfully");
 
     // Move head up
     gr39_move_head(HEAD_UP);
@@ -199,8 +213,11 @@ void TiagoBrain::gr39_deliver(int id)
     group39_hw2::ManipulateGoal goal;
     goal.attach = false;
     goal.id = id;
-    ac.sendGoal(goal);
-    if (!ac.waitForResult(ros::Duration(60.0))) throw std::runtime_error("Manipulation server did not finish after 60 seconds");
+    ac.sendGoalAndWait(goal);
+    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("STATUS | Manipulation server finished with state %s", ac.getState().toString().c_str());
+    else
+        throw std::runtime_error("Manipulation server did not finish successfully");
 }
 
 void TiagoBrain::gr39_move_head(float a)
@@ -219,16 +236,21 @@ void TiagoBrain::gr39_move_head(float a)
     goal.pointing_frame = "xtion_optical_frame";
     goal.max_velocity = 1.0;
     goal.min_duration = ros::Duration(1.0);
-    ac.sendGoal(goal);
-
-    // Waiting for result
-    if (!ac.waitForResult(ros::Duration(10.0))) throw std::runtime_error("Head movement server did not finish after 10 seconds");
-    actionlib::SimpleClientGoalState state = ac.getState();
-    ROS_INFO("STATUS | Head movement server finished with state %s", state.toString().c_str());
+    ac.sendGoalAndWait(goal);
+    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("STATUS | Head movement server finished with state %s", ac.getState().toString().c_str());
+    else
+        throw std::runtime_error("Head movement server did not finish successfully");
 }
 
 void TiagoBrain::gr39_move_torso(float a)
 {
+    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> ac("torso_controller/follow_joint_trajectory", true);
+    ROS_INFO("START  | Waiting for torso movement server to start.");
+    ac.waitForServer();
+    ROS_INFO("DONE   | Torso movement server started, sending goal.");
+
+    // Setting goal
     control_msgs::FollowJointTrajectoryGoal goal;
     goal.trajectory.joint_names.push_back("torso_lift_joint");
     goal.trajectory.points.resize(1);
@@ -239,17 +261,11 @@ void TiagoBrain::gr39_move_torso(float a)
     goal.trajectory.points[i].velocities[0] = 1.0;
     goal.trajectory.points[i].time_from_start = ros::Duration(2.0);
     goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
-
-    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> ac("torso_controller/follow_joint_trajectory", true);
-    ROS_INFO("START  | Waiting for torso movement server to start.");
-    ac.waitForServer();
-    ROS_INFO("DONE   | Torso movement server started, sending goal.");
-    ac.sendGoal(goal);
-
-    // Waiting for result
-    if (!ac.waitForResult(ros::Duration(10.0))) throw std::runtime_error("Torso movement server did not finish after 10 seconds");
-    actionlib::SimpleClientGoalState state = ac.getState();
-    ROS_INFO("STATUS | Torso movement server finished with state %s", state.toString().c_str());
+    ac.sendGoalAndWait(goal);
+    if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        ROS_INFO("STATUS | Torso movement server finished with state %s", ac.getState().toString().c_str());
+    else
+        ROS_ERROR("ERROR  | Torso movement failed with error %s", ac.getState().toString().c_str());
 }
 
 int main(int argc, char** argv)
