@@ -206,8 +206,8 @@ private:
             default: // obstacles (4-7)
                 collision_object.primitives[0].type = collision_object.primitives[0].CYLINDER;
                 collision_object.primitives[0].dimensions.resize(2);
-                collision_object.primitives[0].dimensions[0] = 0.2 + 0.02;  // Height
-                collision_object.primitives[0].dimensions[1] = 0.05 + 0.002; // Radious
+                collision_object.primitives[0].dimensions[0] = 0.2 * 1.15; // Height + 15% wobble compensation
+                collision_object.primitives[0].dimensions[1] = 0.05 * 1.15; // Radius + 15% wobble compensation
                 break;
             }
 
@@ -483,6 +483,8 @@ public:
     Manipulation(std::string name)
     : as_(nh_, name, boost::bind(&Manipulation::executeCB, this, _1), false), action_name_(name), move_group_("arm_torso"), spinner_(1)
     {
+        ROS_INFO("STATUS | Manipulation action server is starting.");
+
         gripper_client_.reset(new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>("/gripper_controller/follow_joint_trajectory", true));
         while (!gripper_client_->waitForServer(ros::Duration(5.0))) ROS_INFO("Waiting for the gripper action server to come up");
 
@@ -498,6 +500,8 @@ public:
 
         // Start action server
         as_.start();
+
+        ROS_INFO("READY  | Manipulation action server is ready.");
     }
 
     /**
@@ -548,7 +552,7 @@ public:
                     break;
                 case 2: // green
                     approach_dist = 0.31;
-                    target_dist = 0.24;
+                    target_dist = 0.22; //0.24;
                     break;
                 case 3: // red
                     approach_dist = 0.26;

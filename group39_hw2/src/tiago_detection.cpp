@@ -50,7 +50,10 @@ public:
      */
     Detection(std::string name)
     : as_(nh_, name, boost::bind(&Detection::executeCB, this, _1), false), action_name_(name)
-    { as_.start(); }
+    { 
+        as_.start(); 
+        ROS_INFO("READY  | Detection action server is ready.");
+    }
 
     /**
      * @brief Destroy the Detection object
