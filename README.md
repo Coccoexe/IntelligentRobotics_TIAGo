@@ -1,6 +1,6 @@
 # GROUP 39
-- Andrea Valentinuzzi 	andrea.valentinuzzi@studenti.unipd.it
 - Alessio Cocco 		    alessio.cocco@studenti.unipd.it
+- Andrea Valentinuzzi 		andrea.valentinuzzi@studenti.unipd.it
 - Giovanni Brejc 		    giovanni.brejc@studenti.unipd.it
 
 This repository contains the project folder and files like the readme and gitignore.
@@ -28,24 +28,24 @@ This repository contains the project folder and files like the readme and gitign
 	rosrun group39_hw1 client 10 0 90
 
 ## Instruction HW2
-work in progress...
+We provide a run_all.sh to run all following console instructions, in alternative we list here the detail to run it independently:
+Note: if you run the run_all file make sure to do a catkin build and a source before.
 
-Console 1:
+#### Terminal 1:
+	catkin build
+	source ~/catkin_ws/devel/setup.bash
 	roslaunch tiago_iaslab_simulation start_simulation.launch world_name:=ias_lab_room_full_tables
-Console 2:
+#### Terminal2:
 	roslaunch tiago_iaslab_simulation apriltag.launch
-Console 3:
+#### Terminal 3:
 	roslaunch tiago_iaslab_simulation navigation.launch
-Console 4:
+#### Terminal 4:
 	rosrun tiago_iaslab_simulation human_node
-Console 5:
+#### Terminal 5:
     rosrun group39_hw1 server
-Console 6:
+#### Terminal 6:
     rosrun group39_hw2 detection
-Console 7:
+#### Terminal 7:
 	rosrun group39_hw2 manipulation
-Console 8:
+#### Terminal 8:
     rosrun group39_hw2 brain
-
-what tiago see and to manually move the head:
-	rosrun look_to_point look_to_point
